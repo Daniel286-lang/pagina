@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Universo Interactivo</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --neon: #00ffcc;
+    --neon2: #ff00aa;
+    --neon3: #7700ff;
+    --bg: #050510;
+    --card-bg: rgba(255,255,255,0.03);
+  }
+
+  body {
+    background: var(--bg);
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Cursor personalizado */
+  #cursor {
+    position: fixed;
+    width: 16px; height: 16px;
+    background: var(--neon);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    mix-blend-mode: screen;
+    transition: transform 0.1s ease;
+  }
+  #cursor-trail {
+    position: fixed;
+    width: 40px; height: 40px;
+    border: 1px solid var(--neon);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    opacity: 0.4;
+    transition: all 0.15s ease;
+  }
+
+  /* Canvas de partículas */
+  #canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* Hero section */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    text-align: center;
+    padding: 2rem;
+  }
+
+  .hero-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.4em;
+    color: var(--neon);
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 0.8s forwards 0.3s;
+  }
+
+  .hero-title {
+    font-size: clamp(3.5rem, 10vw, 9rem);
+    font-weight: 800;
+    line-height: 0.95;
+    margin-bottom: 2rem;
+    opacity: 0;
+    animation: fadeUp 0.8s forwards 0.6s;
+  }
+
+  .hero-title .line1 { display: block; }
+  .hero-title .line2 {
+    display: block;
+    -webkit-text-stroke: 1px var(--neon);
+    color: transparent;
+  }
+  .hero-title .line3 {
+    display: block;
+    background: linear-gradient(90deg, var(--neon), var(--neon2), var(--neon3));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-sub {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.9rem;
+    color: rgba(255,255,255,0.5);
+    max-width: 420px;
+    line-height: 1.8;
+    opacity: 0;
+    animation: fadeUp 0.8s forwards 0.9s;
+    margin-bottom: 2.5rem;
+  }
+
+  .hero-btn {
+    opacity: 0;
+    animation: fadeUp 0.8s forwards 1.1s;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 1rem 2.5rem;
+    border: 1px solid var(--neon);
+    color: var(--neon);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.15em;
+    text-decoration: none;
+    text-transform: uppercase;
+    cursor: none;
+    position: relative;
+    overflow: hidden;
+    transition: color 0.3s;
+  }
+  .hero-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--neon);
+    transform: translateX(-105%);
+    transition: transform 0.4s cubic-bezier(0.77,0,0.175,1);
+  }
+  .hero-btn:hover::before { transform: translateX(0); }
+  .hero-btn:hover { color: #000; }
+  .hero-btn span { position: relative; z-index: 1; }
+
+  /* Scroll indicator */
+  .scroll-indicator {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    animation: fadeUp 0.8s forwards 1.5s;
+  }
+  .scroll-indicator span {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    color: rgba(255,255,255,0.3);
+    text-transform: uppercase;
+  }
+  .scroll-line {
+    width: 1px;
+    height: 60px;
+    background: linear-gradient(to bottom, var(--neon), transparent);
+    animation: scrollPulse 2s ease-in-out infinite;
+  }
+
+  /* Cards section */
+  .section {
+    position: relative;
+    z-index: 1;
+    padding: 6rem 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .section-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.4em;
+    color: var(--neon2);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  .section-title {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 800;
+    margin-bottom: 3rem;
+    line-height: 1.1;
+  }
+
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .card {
+    background: var(--card-bg);
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    transform-style: preserve-3d;
+    transition: border-color 0.3s;
+    cursor: none;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(0,255,204,0.08), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .card:hover::before { opacity: 1; }
+  .card:hover { border-color: rgba(0,255,204,0.3); }
+
+  .card-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    display: block;
+  }
+  .card-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+  }
+  .card-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.45);
+    line-height: 1.8;
+  }
+  .card-num {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.15);
+    letter-spacing: 0.1em;
+  }
+
+  /* Stats bar */
+  .stats-section {
+    position: relative;
+    z-index: 1;
+    padding: 4rem 2rem;
+    background: rgba(0,255,204,0.02);
+    border-top: 1px solid rgba(0,255,204,0.1);
+    border-bottom: 1px solid rgba(0,255,204,0.1);
+  }
+  .stats-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 2rem;
+    text-align: center;
+  }
+  .stat-num {
+    font-size: 3.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--neon), var(--neon2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: block;
+  }
+  .stat-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    color: rgba(255,255,255,0.35);
+    text-transform: uppercase;
+    margin-top: 0.5rem;
+    display: block;
+  }
+
+  /* Texto glitch */
+  .glitch {
+    position: relative;
+  }
+  .glitch::before, .glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .glitch::before {
+    color: var(--neon2);
+    animation: glitch1 3s infinite;
+    clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+  }
+  .glitch::after {
+    color: var(--neon3);
+    animation: glitch2 3s infinite;
+    clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+  }
+
+  /* Input interactivo */
+  .interact-section {
+    position: relative;
+    z-index: 1;
+    padding: 6rem 2rem;
+    max-width: 700px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .text-input-wrap {
+    position: relative;
+    margin: 3rem 0 2rem;
+  }
+  .text-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    padding: 1rem 0;
+    outline: none;
+    text-align: center;
+    transition: border-color 0.3s;
+    cursor: none;
+  }
+  .text-input::placeholder { color: rgba(255,255,255,0.15); }
+  .text-input:focus { border-color: var(--neon); }
+  .text-input-line {
+    position: absolute;
+    bottom: 0; left: 50%;
+    width: 0; height: 1px;
+    background: var(--neon);
+    transform: translateX(-50%);
+    transition: width 0.4s ease;
+  }
+  .text-input:focus ~ .text-input-line { width: 100%; }
+  #echo-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--neon);
+    min-height: 1.5rem;
+    transition: all 0.3s;
+    letter-spacing: 0.05em;
+  }
+
+  /* Footer minimal */
+  footer {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 3rem 2rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.15);
+    letter-spacing: 0.2em;
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+
+  /* Animaciones */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes scrollPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 0.15; }
+  }
+  @keyframes glitch1 {
+    0%, 90%, 100% { transform: translate(0); }
+    92% { transform: translate(-3px, 1px); }
+    94% { transform: translate(3px, -1px); }
+    96% { transform: translate(-2px, 0); }
+  }
+  @keyframes glitch2 {
+    0%, 90%, 100% { transform: translate(0); }
+    91% { transform: translate(3px, -1px); }
+    93% { transform: translate(-3px, 1px); }
+    95% { transform: translate(2px, 0); }
+  }
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-trail"></div>
+<canvas id="canvas"></canvas>
+
+<!-- HERO -->
+<section class="hero">
+  <p class="hero-label">✦ Experiencia Interactiva ✦</p>
+  <h1 class="hero-title">
+    <span class="line1">HOLA,</span>
+    <span class="line2 glitch" data-text="UNIVERSO">UNIVERSO</span>
+    <span class="line3">DIGITAL</span>
+  </h1>
+  <p class="hero-sub">Una página construida con código, luz y movimiento. Mueve el cursor y observa el cosmos reaccionar.</p>
+  <a class="hero-btn" href="#explorar" onclick="document.getElementById('explorar').scrollIntoView({behavior:'smooth'}); return false;">
+    <span>→ Explorar</span>
+  </a>
+  <div class="scroll-indicator">
+    <div class="scroll-line"></div>
+    <span>Scroll</span>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-section">
+  <div class="stats-inner">
+    <div>
+      <span class="stat-num" id="s1">0</span>
+      <span class="stat-label">partículas vivas</span>
+    </div>
+    <div>
+      <span class="stat-num" id="s2">0</span>
+      <span class="stat-label">píxeles encendidos</span>
+    </div>
+    <div>
+      <span class="stat-num" id="s3">0</span>
+      <span class="stat-label">animaciones / seg</span>
+    </div>
+    <div>
+      <span class="stat-num" id="s4">0</span>
+      <span class="stat-label">líneas de código</span>
+    </div>
+  </div>
+</div>
+
+<!-- CARDS -->
+<section class="section" id="explorar">
+  <p class="section-tag">// Características</p>
+  <h2 class="section-title">Construido<br>con propósito</h2>
+  <div class="cards-grid">
+    <div class="card" onmousemove="tiltCard(this,event)" onmouseleave="resetCard(this)">
+      <span class="card-num">01</span>
+      <span class="card-icon">⬡</span>
+      <h3 class="card-title">Partículas dinámicas</h3>
+      <p class="card-text">Sistema de partículas en canvas que reacciona al movimiento del cursor en tiempo real.</p>
+    </div>
+    <div class="card" onmousemove="tiltCard(this,event)" onmouseleave="resetCard(this)">
+      <span class="card-num">02</span>
+      <span class="card-icon">◈</span>
+      <h3 class="card-title">Efecto glitch</h3>
+      <p class="card-text">Tipografía con distorsión de señal. Animaciones CSS puras para el efecto de glitch.</p>
+    </div>
+    <div class="card" onmousemove="tiltCard(this,event)" onmouseleave="resetCard(this)">
+      <span class="card-num">03</span>
+      <span class="card-icon">◎</span>
+      <h3 class="card-title">Cursor personalizado</h3>
+      <p class="card-text">Cursor reemplazado con dos capas: un punto sólido y un anillo suave con delay.</p>
+    </div>
+    <div class="card" onmousemove="tiltCard(this,event)" onmouseleave="resetCard(this)">
+      <span class="card-num">04</span>
+      <span class="card-icon">⬢</span>
+      <h3 class="card-title">Interacción real</h3>
+      <p class="card-text">Escribe tu nombre abajo y el cosmos lo reflejará. Cada tecla, una estrella nueva.</p>
+    </div>
+  </div>
+</section>
+
+<!-- INTERACT -->
+<section class="interact-section">
+  <p class="section-tag">// Tú también eres parte</p>
+  <h2 class="section-title" style="font-size:clamp(1.8rem,4vw,2.8rem);">¿Cómo te llamas?</h2>
+  <div class="text-input-wrap">
+    <input class="text-input" id="nameInput" type="text" placeholder="Escribe aquí..." maxlength="30" autocomplete="off">
+    <div class="text-input-line"></div>
+  </div>
+  <p id="echo-text"></p>
+</section>
+
+<footer>✦ HECHO CON CÓDIGO Y CAOS ✦ &nbsp;&nbsp; 2025</footer>
+
+<script>
+// ─── Cursor ───────────────────────────────────────────
+const cursor = document.getElementById('cursor');
+const trail = document.getElementById('cursor-trail');
+let mx = window.innerWidth/2, my = window.innerHeight/2;
+let tx = mx, ty = my;
+
+document.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY;
+  cursor.style.left = (mx - 8) + 'px';
+  cursor.style.top = (my - 8) + 'px';
+});
+
+function animTrail() {
+  tx += (mx - tx) * 0.12;
+  ty += (my - ty) * 0.12;
+  trail.style.left = (tx - 20) + 'px';
+  trail.style.top = (ty - 20) + 'px';
+  requestAnimationFrame(animTrail);
+}
+animTrail();
+
+document.querySelectorAll('a, button, input, .card, .hero-btn').forEach(el => {
+  el.addEventListener('mouseenter', () => cursor.style.transform = 'scale(2.5)');
+  el.addEventListener('mouseleave', () => cursor.style.transform = 'scale(1)');
+});
+
+// ─── Partículas ───────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [];
+const PARTICLE_COUNT = 120;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+class Particle {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * W;
+    this.y = Math.random() * H;
+    this.vx = (Math.random() - 0.5) * 0.4;
+    this.vy = (Math.random() - 0.5) * 0.4;
+    this.r = Math.random() * 1.5 + 0.5;
+    this.alpha = Math.random() * 0.5 + 0.1;
+    this.color = Math.random() > 0.5 ? '#00ffcc' : (Math.random() > 0.5 ? '#ff00aa' : '#7700ff');
+  }
+  update() {
+    const dx = mx - this.x, dy = my - this.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < 150) {
+      this.vx += dx / dist * 0.08;
+      this.vy += dy / dist * 0.08;
+    }
+    this.vx *= 0.98; this.vy *= 0.98;
+    this.x += this.vx; this.y += this.vy;
+    if (this.x < 0 || this.x > W || this.y < 0 || this.y > H) this.reset();
+  }
+  draw() {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.fillStyle = this.color;
+    ctx.globalAlpha = this.alpha;
+    ctx.fill();
+  }
+}
+
+for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(new Particle());
+
+function drawConnections() {
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i+1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if (d < 100) {
+        ctx.globalAlpha = (1 - d/100) * 0.12;
+        ctx.strokeStyle = '#00ffcc';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x, particles[i].y);
+        ctx.lineTo(particles[j].x, particles[j].y);
+        ctx.stroke();
+      }
+    }
+  }
+}
+
+let frame = 0;
+function loop() {
+  ctx.clearRect(0, 0, W, H);
+  drawConnections();
+  particles.forEach(p => { p.update(); p.draw(); });
+  ctx.globalAlpha = 1;
+  frame++;
+  requestAnimationFrame(loop);
+}
+loop();
+
+// ─── Tilt cards ───────────────────────────────────────
+function tiltCard(el, e) {
+  const r = el.getBoundingClientRect();
+  const cx = r.left + r.width/2, cy = r.top + r.height/2;
+  const rx = (e.clientY - cy) / (r.height/2) * -8;
+  const ry = (e.clientX - cx) / (r.width/2) * 8;
+  const px = ((e.clientX - r.left) / r.width * 100).toFixed(1);
+  const py = ((e.clientY - r.top) / r.height * 100).toFixed(1);
+  el.style.transform = `perspective(600px) rotateX(${rx}deg) rotateY(${ry}deg) scale(1.03)`;
+  el.style.setProperty('--mx', px+'%');
+  el.style.setProperty('--my', py+'%');
+}
+function resetCard(el) {
+  el.style.transform = 'perspective(600px) rotateX(0) rotateY(0) scale(1)';
+}
+
+// ─── Echo input ───────────────────────────────────────
+const greetings = ['¡Hola, ', 'Hey, ', 'Bienvenid@, ', '✦ ', '→ '];
+const input = document.getElementById('nameInput');
+const echo = document.getElementById('echo-text');
+input.addEventListener('input', () => {
+  const v = input.value.trim();
+  if (!v) { echo.textContent = ''; return; }
+  const g = greetings[v.length % greetings.length];
+  echo.textContent = g + v.toUpperCase() + ' — el universo te vio llegar.';
+});
+
+// ─── Stats counters ───────────────────────────────────
+function countUp(id, target, suffix='') {
+  let n = 0;
+  const el = document.getElementById(id);
+  const step = Math.ceil(target / 60);
+  const t = setInterval(() => {
+    n = Math.min(n + step, target);
+    el.textContent = n.toLocaleString() + suffix;
+    if (n >= target) clearInterval(t);
+  }, 20);
+}
+
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      countUp('s1', PARTICLE_COUNT);
+      countUp('s2', 2073600);
+      countUp('s3', 60);
+      countUp('s4', 420);
+      obs.disconnect();
+    }
+  });
+}, { threshold: 0.4 });
+obs.observe(document.querySelector('.stats-section'));
+</script>
+</body>
+</html>
