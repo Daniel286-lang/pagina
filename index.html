@@ -1,6 +1,8 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Universo Interactivo</title>
@@ -239,58 +241,6 @@
     color: rgba(255,255,255,0.45);
     line-height: 1.8;
   }
-  /* =========================================
-     Sección de Galería de Imágenes
-  ========================================= */
-  .gallery-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1.5rem;
-    margin-top: 1rem;
-  }
-  .gallery-item {
-    position: relative;
-    border: 1px solid rgba(255,255,255,0.08);
-    background: var(--card-bg);
-    overflow: hidden;
-    cursor: none;
-    transform-style: preserve-3d;
-    transition: border-color 0.3s;
-    aspect-ratio: 1 / 1; /* Hace que sean cuadradas */
-  }
-  .gallery-item img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.6s ease, opacity 0.3s;
-    opacity: 0.6;
-    filter: grayscale(30%); /* Le da un toque espacial apagado */
-  }
-  .gallery-item:hover {
-    border-color: var(--neon3);
-  }
-  .gallery-item:hover img {
-    transform: scale(1.1);
-    opacity: 1;
-    filter: grayscale(0%);
-  }
-  .gallery-overlay {
-    position: absolute;
-    bottom: 0; left: 0; width: 100%;
-    padding: 1.5rem 1rem;
-    background: linear-gradient(transparent, var(--bg));
-    font-family: 'Space Mono', monospace;
-    font-size: 0.85rem;
-    color: var(--neon);
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    text-align: center;
-    transform: translateY(100%);
-    transition: transform 0.4s ease;
-  }
-  .gallery-item:hover .gallery-overlay {
-    transform: translateY(0);
-  }
   .card-num {
     position: absolute;
     top: 1.5rem;
@@ -300,7 +250,6 @@
     color: rgba(255,255,255,0.15);
     letter-spacing: 0.1em;
   }
-  
 
   /* Stats bar */
   .stats-section {
@@ -319,7 +268,6 @@
     gap: 2rem;
     text-align: center;
   }
-  
   .stat-num {
     font-size: 3.5rem;
     font-weight: 800;
@@ -463,6 +411,9 @@
   <a class="hero-btn" href="#explorar" onclick="document.getElementById('explorar').scrollIntoView({behavior:'smooth'}); return false;">
     <span>→ Explorar</span>
   </a>
+  <a class="hero-btn" href="#solar" onclick="document.getElementById('solar').scrollIntoView({behavior:'smooth'}); return false;">
+  <span>☀ Ver Sistema Solar</span>
+</a>
   <div class="scroll-indicator">
     <div class="scroll-line"></div>
     <span>Scroll</span>
@@ -522,33 +473,6 @@
     </div>
   </div>
 </section>
-<section class="section" id="galeria">
-  <p class="section-tag">// Exploración Visual</p>
-  <h2 class="section-title">Cuerpos Celestes</h2>
-  <div class="gallery-grid">
-    
-    <div class="gallery-item" onmousemove="tiltCard(this,event)" onmouseleave="resetCard(this)">
-      <img src="img/tierra.jpg" alt="Planeta Tierra">
-      <div class="gallery-overlay">Tierra</div>
-    </div>
-
-    <div class="gallery-item" onmousemove="tiltCard(this,event)" onmouseleave="resetCard(this)">
-      <img src="img/marte.jpg" alt="Planeta Marte">
-      <div class="gallery-overlay">Marte</div>
-    </div>
-
-    <div class="gallery-item" onmousemove="tiltCard(this,event)" onmouseleave="resetCard(this)">
-      <img src="img/jupiter.jpg" alt="Planeta Júpiter">
-      <div class="gallery-overlay">Júpiter</div>
-    </div>
-
-    <div class="gallery-item" onmousemove="tiltCard(this,event)" onmouseleave="resetCard(this)">
-      <img src="img/galaxia.jpg" alt="Galaxia">
-      <div class="gallery-overlay">Galaxia</div>
-    </div>
-
-  </div>
-</section>
 
 <!-- INTERACT -->
 <section class="interact-section">
@@ -562,8 +486,14 @@
 </section>
 
 <footer>✦ HECHO CON CÓDIGO Y CAOS ✦ &nbsp;&nbsp; 2025</footer>
-
+<!-- SISTEMA SOLAR -->
+<section class="section" id="solar">
+  <p class="section-tag">// Exploración</p>
+  <h2 class="section-title">Sistema Solar</h2>
+  <div id="solar-container" style="width:100%; height:500px;"></div>
+</section>
 <script>
+  
 // ─── Cursor ───────────────────────────────────────────
 const cursor = document.getElementById('cursor');
 const trail = document.getElementById('cursor-trail');
@@ -717,6 +647,77 @@ const obs = new IntersectionObserver(entries => {
   });
 }, { threshold: 0.4 });
 obs.observe(document.querySelector('.stats-section'));
+// ─── Sistema Solar COMPLETO ─────────────────────────
+const container = document.getElementById('solar-container');
+
+if (container) {
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  container.appendChild(renderer.domElement);
+
+  // Luz
+  const light = new THREE.PointLight(0xffffff, 2);
+  scene.add(light);
+
+  // Sol
+  const sun = new THREE.Mesh(
+    new THREE.SphereGeometry(2.5, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0xffcc00 })
+  );
+  scene.add(sun);
+
+  // Función para crear planetas
+  function createPlanet(size, color, distance, speed) {
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(size, 32, 32),
+      new THREE.MeshStandardMaterial({ color })
+    );
+
+    scene.add(mesh);
+
+    return {
+      mesh,
+      distance,
+      speed,
+      angle: Math.random() * Math.PI * 2
+    };
+  }
+
+  // Planetas (aproximados)
+  const planets = [
+    createPlanet(0.3, 0xaaaaaa, 4, 0.02),   // Mercurio
+    createPlanet(0.5, 0xffcc99, 5.5, 0.015), // Venus
+    createPlanet(0.6, 0x2233ff, 7, 0.01),    // Tierra
+    createPlanet(0.4, 0xff3300, 8.5, 0.008), // Marte
+    createPlanet(1.2, 0xffaa33, 11, 0.006),  // Júpiter
+    createPlanet(1.0, 0xffddaa, 14, 0.005),  // Saturno
+    createPlanet(0.8, 0x66ccff, 17, 0.004),  // Urano
+    createPlanet(0.8, 0x3366ff, 20, 0.003)   // Neptuno
+  ];
+
+  camera.position.z = 30;
+
+  function animateSolar() {
+    requestAnimationFrame(animateSolar);
+
+    sun.rotation.y += 0.003;
+
+    planets.forEach(p => {
+      p.angle += p.speed;
+      p.mesh.position.x = Math.cos(p.angle) * p.distance;
+      p.mesh.position.z = Math.sin(p.angle) * p.distance;
+      p.mesh.rotation.y += 0.01;
+    });
+
+    renderer.render(scene, camera);
+  }
+
+  animateSolar();
+}
 </script>
 </body>
 </html>
